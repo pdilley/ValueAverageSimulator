@@ -3,11 +3,108 @@
 //2017-09-25
 //dva.cpp
 
+//This program compares safety and efficacy of multiple investment strategies to improve long term performance.  
+//It uses historical stock market data to compare strategies and stocks for their RoI.  
+
+#include <cmath>
 #include <iostream>
+#include <fstream>
+#include <vector>
+#include <string>
+#include <cstdlib>
+#define DEF_GROWTH 1000
+#define DEF_FACTOR 1.01
+#define TAB "      "
 
 main(int argc, char ** argv)
 {
+  int cash = 0;
+  int week = 0;
+  int stockNum = 0;
+  double stockValue = 0;
+  int difference = 0;
+  float weeklyGrowth = DEF_GROWTH;
+  float growthFactor = DEF_FACTOR;  
+  std::string line;
+  std::ofstream log;
+  std::ofstream quickStats;
+  std::string stockList[15] = {"akam.csv", "goog.csv", "ijh.csv", "ijr.csv", "rht.csv", "schb.csv", "vix.csv"};
+  std::ifstream stockFile;
 
+  for(int i=0;i<7;i++)
+    {
+      //initializing
+      cash = 0;
+      week = 0;
+      stockNum = 0;
+      stockValue = 0;
+      difference = 0;
+      weeklyGrowth = DEF_GROWTH;
+      growthFactor = DEF_FACTOR;
+      stockFile.close();
+      stockFile.clear();
+      quickStats.close();
+      quickStats.clear();
+      log.close();
+      log.clear();
+      stockFile.open("stocks/" + stockList[i]);
+      quickStats.open("output/" + stockList[i] + ".qs");
+      log.open("output/" + stockList[i] + ".log");
+      if(stockFile.fail() || quickStats.fail() || log.fail())
+	{
+	  std::cout << "Error opening file " << stockList[i] << std::endl;
+	  return 1;
+	}
 
-return(0);
+      while(getline(stockFile, line))
+	{
+	  week++;
+	  cash=cash+1000;
+	  stockValue = std::stof(line);
+	  difference = floor(weeklyGrowth * week - stockValue*stockNum);
+	  difference = floor(std::min(difference/stockValue, cash/stockValue));
+	  cash = cash-difference*stockValue;
+	  stockNum+=difference;
+	  if(cash < stockValue || cash < .01 * stockValue*stockNum)
+	    {
+	      growthFactor = growthFactor - .001;
+	      log << week << TAB << weeklyGrowth << TAB << growthFactor << " decreased" << TAB << cash << TAB << stockValue*stockNum << std::endl;
+	    }
+	  else if(cash > .04*stockValue*stockNum && cash < .08*stockValue*stockNum)
+	    {
+	      growthFactor += .0001;
+	      log << week << TAB << weeklyGrowth << TAB << growthFactor << " increased by .0001" << TAB << cash << TAB << stockValue*stockNum << std::endl;
+	    }
+	  else
+	    {
+	      growthFactor += .0001;
+	      weeklyGrowth = weeklyGrowth *1.05;
+	      log << week << TAB << weeklyGrowth << TAB << growthFactor << " increased by a lot!!!" << TAB << cash << TAB << stockValue*stockNum << std::endl;
+	    }
+	  quickStats << week << TAB << weeklyGrowth * week << TAB << stockNum*stockValue + cash << std::endl;
+	  weeklyGrowth = weeklyGrowth*growthFactor;
+
+	}
+
+      quickStats << cash+stockValue*stockNum << std::endl << weeklyGrowth << std::endl;
+      cash = 0;
+      week = 0;
+      stockNum = 0;
+      stockValue = 0;
+      weeklyGrowth = DEF_GROWTH;
+      stockFile.close();
+      stockFile.clear();
+      stockFile.open("stocks/" + stockList[i]);
+      while(getline(stockFile, line))
+	{
+	  week++;
+	  cash=cash+1000;
+	  stockValue = std::stof(line);
+	  difference = floor(cash/stockValue);
+	  cash = cash-difference*stockValue;
+	  stockNum+=difference;
+	}
+      quickStats << stockValue * stockNum + cash << std::endl;
+    }
+  return(0);
 }
